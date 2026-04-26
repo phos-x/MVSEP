@@ -1,81 +1,120 @@
-# MVSEP-MDX23-music-separation-model
-Model for [Sound demixing challenge 2023: Music Demixing Track - MDX'23](https://www.aicrowd.com/challenges/sound-demixing-challenge-2023). Model perform separation of music into 4 stems "bass", "drums", "vocals", "other". Model won 3rd place in challenge (Leaderboard C).
+# Music Source Separation Universal Training Code
 
-Model based on [Demucs4](https://github.com/facebookresearch/demucs), [MDX](https://github.com/kuielab/mdx-net) neural net architectures and some MDX weights from [Ultimate Vocal Remover](https://github.com/Anjok07/ultimatevocalremovergui) project (thanks [Kimberley Jensen](https://github.com/KimberleyJensen) for great high quality vocal models). Thanks [@Ma5onic](https://github.com/Ma5onic) for web UI & helping with dataset augmentation techniques. Brought to you by [MVSep.com](https://mvsep.com).
-## Usage
+Repository for training models for music source separation. Repository is based on [kuielab code](https://github.com/kuielab/sdx23/tree/mdx_AB/my_submission/src) for [SDX23 challenge](https://github.com/kuielab/sdx23/tree/mdx_AB/my_submission/src). The main idea of this repository is to create training code, which is easy to modify for experiments. Brought to you by [MVSep.com](https://mvsep.com).
 
+## Models
+
+Model can be chosen with `--model_type` arg.
+
+Available models for training:
+
+* MDX23C based on [KUIELab TFC TDF v3 architecture](https://github.com/kuielab/sdx23/). Key: `mdx23c`.
+* Demucs4HT [[Paper](https://arxiv.org/abs/2211.08553)]. Key: `htdemucs`.
+* VitLarge23 based on [Segmentation Models Pytorch](https://github.com/qubvel/segmentation_models.pytorch). Key: `segm_models`.
+* TorchSeg based on [TorchSeg module](https://github.com/qubvel/segmentation_models.pytorch). Key: `torchseg`.
+* Band Split RoFormer [[Paper](https://arxiv.org/abs/2309.02612), [Repository](https://github.com/lucidrains/BS-RoFormer)] . Key: `bs_roformer`.
+* Mel-Band RoFormer [[Paper](https://arxiv.org/abs/2310.01809), [Repository](https://github.com/lucidrains/BS-RoFormer)]. Key: `mel_band_roformer`.
+* Swin Upernet [[Paper](https://arxiv.org/abs/2103.14030)] Key: `swin_upernet`.
+* BandIt Plus [[Paper](https://arxiv.org/abs/2309.02539), [Repository](https://github.com/karnwatcharasupat/bandit)] Key: `bandit`.
+* SCNet [[Paper](https://arxiv.org/abs/2401.13276), [Official Repository](https://github.com/starrytong/SCNet), [Unofficial Repository](https://github.com/amanteur/SCNet-PyTorch)] Key: `scnet`.
+* BandIt v2 [[Paper](https://arxiv.org/abs/2407.07275), [Repository](https://github.com/kwatcharasupat/bandit-v2)] Key: `bandit_v2`.
+* Apollo [[Paper](https://arxiv.org/html/2409.08514v1), [Repository](https://github.com/JusperLee/Apollo)] Key: `apollo`.
+* BSMamba2 [[Paper](https://arxiv.org/abs/2508.14556), [Repository](https://github.com/EuiYeonKim/BSMamba2)] Key: `bs_mamba2`.
+* Conformer [[Paper](https://arxiv.org/abs/2005.08100), [Repository](https://github.com/lucidrains/conformer)] Key: `conformer`.
+* BS Conformer Key: `bs_conformer`
+* SCNet Tran Key: `scnet_tran`.
+* SCNet Masked Key: `scnet_masked`.
+
+1. **Note 1**: For `segm_models` there are many different encoders is possible. [Look here](https://github.com/qubvel/segmentation_models.pytorch#encoders-).
+2. **Note 2**: Thanks to [@lucidrains](https://github.com/lucidrains) for recreating the RoFormer models based on papers.
+3. **Note 3**: For `torchseg` gives access to more than 800 encoders from `timm` module. It's similar to `segm_models`.
+
+## How to: Train
+
+To train model you need to:
+
+1) Choose model type with option `--model_type`, including: `mdx23c`, `htdemucs`, `segm_models`, `mel_band_roformer`, `bs_roformer`.
+2) Choose location of config for model `--config_path` `<config path>`. You can find examples of configs in [configs folder](configs/). Prefixes `config_musdb18_` are examples for [MUSDB18 dataset](https://sigsep.github.io/datasets/musdb.html).
+3) If you have a check-point from the same model or from another similar model you can use it with option: `--start_check_point` `<weights path>`
+4) Choose path where to store results of training `--results_path` `<results folder path>`
+
+### Training example
+
+```bash
+python train.py \
+    --model_type mel_band_roformer \
+    --config_path configs/config_mel_band_roformer_vocals.yaml \
+    --start_check_point results/model.ckpt \
+    --results_path results/ \
+    --data_path 'datasets/dataset1' 'datasets/dataset2' \
+    --valid_path datasets/musdb18hq/test \
+    --num_workers 4 \
+    --device_ids 0
 ```
-    python inference.py --input_audio mixture1.wav mixture2.wav --output_folder ./results/
+
+All training parameters are [here](https://github.com/ZFTurbo/Music-Source-Separation-Training/blob/main/utils/settings.py#L20).
+
+### Training with LoRA
+
+Look here: [LoRA training](docs/LoRA.md)
+
+## How to: Inference
+
+### Inference example
+
+```bash
+python inference.py \
+    --model_type mdx23c \
+    --config_path configs/config_mdx23c_musdb18.yaml \
+    --start_check_point results/last_mdx23c.ckpt \
+    --input_folder input/wavs/ \
+    --store_dir separation_results/
 ```
 
-With this command audios with names "mixture1.wav" and "mixture2.wav" will be processed and results will be stored in `./results/` folder in WAV format.
+All inference parameters are [here](https://github.com/ZFTurbo/Music-Source-Separation-Training/blob/main/utils/settings.py#L130).
+Convert models to ONNX and TensorRT formats [here](https://github.com/ZFTurbo/MSS_ONNX_TensorRT).
 
-### All available keys
-* `--input_audio` - input audio location. You can provide multiple files at once. **Required**
-* `--output_folder` - output audio folder. **Required**
-* `--cpu` - choose CPU instead of GPU for processing. Can be very slow.
-* `--overlap_large` - overlap of splitted audio for light models. Closer to 1.0 - slower, but better quality. Default: 0.6.
-* `--overlap_small` - overlap of splitted audio for heavy models. Closer to 1.0 - slower, but better quality. Default: 0.5.
-* `--single_onnx` - only use single ONNX model for vocals. Can be useful if you have not enough GPU memory.
-* `--chunk_size` - chunk size for ONNX models. Set lower to reduce GPU memory consumption. Default: 1000000.
-* `--large_gpu` - it will store all models on GPU for faster processing of multiple audio files. Requires at least 11 GB of free GPU memory.
-* `--use_kim_model_1` - use first version of Kim model (as it was on contest).
-* `--only_vocals` - only create vocals and instrumental. Skip bass, drums, other. Processing will be faster.
+## Useful notes
 
-### Notes
-* If you have not enough GPU memory you can use CPU (`--cpu`), but it will be slow. Additionally you can use single ONNX (`--single_onnx`), but it will decrease quality a little bit. Also reduce of chunk size can help (`--chunk_size 200000`).
-* In current revision code requires less GPU memory, but it process multiple files slower. If you want old fast method use argument `--large_gpu`. It will require > 11 GB of GPU memory, but will work faster.
-* There is [Google.Collab version](https://colab.research.google.com/github/jarredou/MVSEP-MDX23-Colab_v2/blob/main/MVSep-MDX23-Colab.ipynb) of this code.  
+* All batch sizes in config are adjusted to use with single NVIDIA A6000 48GB. If you have less memory please adjust correspodningly in model config `training.batch_size` and `training.gradient_accumulation_steps`.
+* It's usually always better to start with old weights even if shapes not fully match. Code supports loading weights for not fully same models (but it must have the same architecture). Training will be much faster.
 
-## Quality comparison
+## Code description
 
-Quality comparison with best separation models performed on [MultiSong Dataset](https://mvsep.com/quality_checker/leaderboard2.php?sort=bass). 
+* `configs/config_*.yaml` - configuration files for models
+* `models/*` - set of available models for training and inference
+* `dataset.py` - dataset which creates new samples for training
+* `gui-wx.py` - GUI interface for code
+* `inference.py` - process folder with music files and separate them
+* `train.py` - main training code for single GPU
+* `train_ddp.py` - training code for Multi GPU config. Faster than `train.py`. Use it for 2 or more GPUs.
+* `utils.py` - common functions used by train/valid
+* `valid.py` - validation of model with metrics
+* `ensemble.py` - useful script to ensemble results of different models to make results better (see [docs](docs/ensemble.md)).   
 
-| Algorithm     | SDR bass  | SDR drums  | SDR other  | SDR vocals  | SDR instrumental  |
-| ------------- |:---------:|:----------:|:----------:|:----------:|:------------------:|
-| MVSEP MDX23   | 12.5034   | 11.6870    | 6.5378     |  9.5138    | 15.8213            |
-| Demucs HT 4   | 12.1006   | 11.3037    | 5.7728     |  8.3555    | 13.9902            |
-| Demucs 3      | 10.6947   | 10.2744    | 5.3580     |  8.1335    | 14.4409            |
-| MDX B         | ---       | ----       | ---        |  8.5118    | 14.8192            |
+## Pre-trained models
 
-* Note: SDR - signal to distortion ratio. Larger is better.
+Look here: [List of Pre-trained models](docs/pretrained_models.md)
 
-## GUI
+If you trained some good models, please, share them. You can post config and model weights [in this issue](https://github.com/ZFTurbo/Music-Source-Separation-Training/issues/1).
 
-![GUI Window](https://github.com/ZFTurbo/MVSEP-MDX23-music-separation-model/blob/main/images/MVSep-Window.png)
+## Dataset types
 
-* Script for GUI (based on PyQt5): [gui.py](gui.py).
-* You can download [standalone program for Windows here](https://github.com/ZFTurbo/MVSEP-MDX23-music-separation-model/releases/download/v1.0.1/MVSep-MDX23_v1.0.1.zip) (~730 MB). Unzip archive and to start program double click `run.bat`. On first run it will download pytorch with CUDA support (~2.8 GB) and some Neural Net models.
-* Program will download all needed neural net models from internet at the first run.
-* GUI supports Drag & Drop of multiple files.
-* Progress bar available.
+Look here: [Dataset types](docs/dataset_types.md)
 
-## Web Interface
-executing `web-ui.py` with python will start the web interface locally on `localhost` (127.0.0.1).
-You'll see what port it is running on within the terminal output.
+## Augmentations
 
-![image](https://github.com/Ma5onic/MVSEP-MDX23-music-separation-model/assets/18509613/ae7130a5-60a4-4095-abbd-5290e84dcf7c)
+Look here: [Augmentations](docs/augmentations.md)
 
-* Browser-Based user interface
-* Program will download all needed neural net models from internet at the first run.
-* supports Drag & Drop for audio upload (single file)
+## Graphical user interface
 
-![Web-UI Window](https://github.com/ZFTurbo/MVSEP-MDX23-music-separation-model/assets/18509613/4872f6aa-5896-44e9-8885-eaee1de3f4ee)
-
-
-## Changes
-
-### v1.0.1
-* Settings in GUI updated, now you can control all possible options
-* Kim vocal model updated from version 1 to version 2, you still can use version 1 using parameter `--use_kim_model_1`
-* Added possibility to generate only vocals/instrumental pair if you don't need bass, drums and other stems. Use parameter `--only_vocals`
-* Standalone program was updated. It has less size now. GUI will download torch/cuda on the first run. 
+Look here: [GUI documentation](docs/gui.md) or see tutorial on [Youtube](https://youtu.be/M8JKFeN7HfU)
 
 ## Citation
 
 * [arxiv paper](https://arxiv.org/abs/2305.07489)
 
-```
+```text
 @misc{solovyev2023benchmarks,
       title={Benchmarks and leaderboards for sound demixing tasks}, 
       author={Roman Solovyev and Alexander Stempkovskiy and Tatiana Habruseva},
@@ -83,17 +122,5 @@ You'll see what port it is running on within the terminal output.
       eprint={2305.07489},
       archivePrefix={arXiv},
       primaryClass={cs.SD}
-}
-
-@article{fabbro2024sound,
-    title={The Sound Demixing Challenge 2023-Music Demixing Track.},
-    author={Fabbro, G., Uhlich, S., Lai, C.-H., Choi, W., Martínez-Ramírez, M., Liao, W., Gadelha, I., Ramos, G., Hsu, E., Rodrigues, H., Stöter, F.-R.,
-    Défossez, A., Luo, Y., Yu, J., Chakraborty, D., Mohanty, S., Solovyev, R., Stempkovskiy, A., Habruseva, T., Goswami, N., Harada, T., Kim, M.,
-    Lee, J. H., Dong, Y., Zhang, X., Liu, J., & Mitsufuji, Y},
-    journal={Trans. Int. Soc. Music. Inf. Retr.},
-    volume={7},
-    number={1},
-    pages={63--84},
-    year={2024}
 }
 ```
